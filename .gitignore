@@ -97,7 +97,7 @@ tensorboard/
 *.sqlite
 *.xls
 *.xlsx
-*.json
+# *.json
 *.npy
 *.npz
 *.parquet
