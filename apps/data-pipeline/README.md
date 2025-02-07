@@ -1,3 +1,3 @@
-# data_pipeline
+# apps-data-pipeline
 
 Project description here.

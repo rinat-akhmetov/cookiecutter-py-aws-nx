@@ -3,4 +3,4 @@
 
 def hello():
     """Return a friendly greeting."""
-    return "Hello step1_lambda"
+    return "Hello apps-data-pipeline"

@@ -1,14 +1,14 @@
 {
-  "name": "step1_lambda",
-  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "apps-data-pipeline",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "apps/data_pipeline/lambdas/step1_lambda",
+  "sourceRoot": "./apps/data-pipeline/apps_data_pipeline",
   "targets": {
     "lock": {
       "executor": "@nxlv/python:run-commands",
       "options": {
         "command": "uv lock",
-        "cwd": "apps/data_pipeline/lambdas"
+        "cwd": "./apps/data-pipeline"
       }
     },
     "add": {
@@ -29,7 +29,7 @@
         "{projectRoot}/dist"
       ],
       "options": {
-        "outputPath": "apps/data_pipeline/lambdas/dist",
+        "outputPath": "./apps/data-pipeline/dist",
         "publish": false,
         "lockedVersions": true,
         "bundleLocalDependencies": true
@@ -41,7 +41,8 @@
       "outputs": [],
       "options": {
         "lintFilePatterns": [
-          "step1_lambda"
+          "apps_data_pipeline",
+          "tests"
         ]
       },
       "cache": true
@@ -51,8 +52,21 @@
       "outputs": [],
       "options": {
         "filePatterns": [
-          "step1_lambda"
+          "apps_data_pipeline",
+          "tests"
         ]
+      },
+      "cache": true
+    },
+    "test": {
+      "executor": "@nxlv/python:run-commands",
+      "outputs": [
+        "{workspaceRoot}/reports/./apps/data-pipeline/unittests",
+        "{workspaceRoot}/coverage/./apps/data-pipeline"
+      ],
+      "options": {
+        "command": "uv run pytest tests/",
+        "cwd": "./apps/data-pipeline"
       },
       "cache": true
     },
