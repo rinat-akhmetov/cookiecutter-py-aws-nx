@@ -1,14 +1,14 @@
 {
-  "name": "apps-data-pipeline",
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "data-pipeline-step1-lambda",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "./apps/data-pipeline/apps_data_pipeline",
+  "sourceRoot": "apps/data-pipeline/step1-lambda/src",
   "targets": {
     "lock": {
       "executor": "@nxlv/python:run-commands",
       "options": {
         "command": "uv lock",
-        "cwd": "./apps/data-pipeline"
+        "cwd": "apps/data-pipeline/step1-lambda"
       }
     },
     "add": {
@@ -29,19 +29,35 @@
         "{projectRoot}/dist"
       ],
       "options": {
-        "outputPath": "./apps/data-pipeline/dist",
+        "outputPath": "apps/data-pipeline/step1-lambda/dist",
         "publish": false,
         "lockedVersions": true,
         "bundleLocalDependencies": true
       },
       "cache": true
     },
+    "zip": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": [
+          "rm -rf tmp lambda_deployment.zip &&",
+          "uv venv .venv-dist && ",
+          "source .venv-dist/bin/activate && ",
+          "uv pip install -r pyproject.toml && ",
+          "mkdir -p tmp/python && ",
+          "cp -r .venv-dist/lib/python3.12/site-packages/* tmp/python/ && ",
+          "cd tmp && zip -r ../lambda_deployment.zip python && ",
+          "cd ../ && rm -rf tmp/"
+        ],
+        "cwd": "{projectRoot}"
+      }
+    },
     "lint": {
       "executor": "@nxlv/python:ruff-check",
       "outputs": [],
       "options": {
         "lintFilePatterns": [
-          "apps_data_pipeline",
+          "src",
           "tests"
         ]
       },
@@ -52,7 +68,7 @@
       "outputs": [],
       "options": {
         "filePatterns": [
-          "apps_data_pipeline",
+          "src",
           "tests"
         ]
       },
@@ -61,12 +77,12 @@
     "test": {
       "executor": "@nxlv/python:run-commands",
       "outputs": [
-        "{workspaceRoot}/reports/./apps/data-pipeline/unittests",
-        "{workspaceRoot}/coverage/./apps/data-pipeline"
+        "{workspaceRoot}/reports/apps/data-pipeline/step1-lambda/unittests",
+        "{workspaceRoot}/coverage/apps/data-pipeline/step1-lambda"
       ],
       "options": {
         "command": "uv run pytest tests/",
-        "cwd": "./apps/data-pipeline"
+        "cwd": "apps/data-pipeline/step1-lambda"
       },
       "cache": true
     },
