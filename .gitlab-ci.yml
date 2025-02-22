@@ -1,0 +1,84 @@
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+# Linting Jobs
+lint:code:
+  stage: lint
+  image: node:18-alpine
+  script:
+    - npx nx run-many --target=lint --all
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+
+lint:terraform:
+  stage: lint
+  image: hashicorp/terraform:1.5.6
+  script:
+    - terraform fmt -check -recursive
+    - terraform validate infra/dev && terraform validate infra/pre-prod && terraform validate infra/prod
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+
+# Testing
+test:
+  stage: test
+  image: node:18-alpine
+  script:
+    - npx nx run-many --target=test --all
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+
+# Build artifacts
+build:
+  stage: build
+  image: node:18  # assume node image has npm and maybe python if we installed it, or use a custom image
+  script:
+    - npx nx run-many --target=build --all
+  artifacts:
+    paths:
+      - dist/**
+      - apps/data-pipeline/**.zip
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+
+# Deploy to environments
+deploy:dev:
+  stage: deploy
+  image: hashicorp/terraform:1.5.6
+  script:
+    - cd infra/dev
+    - terraform init 
+    - terraform apply -auto-approve   # (plan and apply combined for brevity)
+  environment:
+    name: dev
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+
+deploy:preprod:
+  stage: deploy
+  image: hashicorp/terraform:1.5.6
+  script:
+    - cd infra/pre-prod
+    - terraform init 
+    - terraform apply -auto-approve 
+  environment:
+    name: preprod
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "pre-prod"'
+
+deploy:prod:
+  stage: deploy
+  image: hashicorp/terraform:1.5.6
+  script:
+    - cd infra/prod
+    - terraform init 
+    - terraform apply -auto-approve 
+  environment:
+    name: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+      allow_failure: false

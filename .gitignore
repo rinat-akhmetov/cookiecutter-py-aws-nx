@@ -118,3 +118,10 @@ raw_data/
 .vscode/
 *.swp
 *.swo
+
+terraform.tfvars
+.terraform.lock.hcl
+.terraform/
+*.zip
+
+reports/
