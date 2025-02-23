@@ -14,6 +14,16 @@
     "appsDir": "apps",
     "libsDir": "libs"
   },
+  "namedInputs": {
+    "sharedGlobals": [
+      "{workspaceRoot}/apps/data-pipeline/**/*",
+      "{workspaceRoot}/infra/**/*",
+      "{workspaceRoot}/libs/**/*"
+    ],
+    "default": [
+      "sharedGlobals"
+    ]
+  },
   "generators": {
     "@nxlv/python:uv-project": {
       "pyenvPythonVersion": "3.12.4",
