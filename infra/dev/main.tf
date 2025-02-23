@@ -42,3 +42,11 @@ module "step1_lambda" {
     ENV = var.environment
   }
 }
+module "step2_lambda" {
+  source = "../modules/data-pipeline/step2-lambda"
+
+  environment = var.environment
+  environment_variables = {
+    ENV = var.environment
+  }
+}
