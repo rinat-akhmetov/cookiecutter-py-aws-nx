@@ -1,131 +1,43 @@
 image: node:20
 
-variables:
-  GIT_DEPTH: 0
-  PYTHON_VERSION: "3.12"
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
-
-# Define reusable templates
-.setup-python: &setup-python
-  - apt-get update && apt-get install -y python${PYTHON_VERSION} python3-pip
-  - python3 -m pip install --upgrade pip
-  - python3 -m pip install uv
-
-.setup-node: &setup-node
-  - npm ci --cache .npm --prefer-offline
-  - NX_HEAD=$CI_COMMIT_SHA
-  - NX_BASE=${CI_MERGE_REQUEST_DIFF_BASE_SHA:-$CI_COMMIT_BEFORE_SHA}
-
-workflow:
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_COMMIT_BRANCH =~ /^release\/.*$/
-    - if: $CI_COMMIT_BRANCH =~ /^hotfix\/.*$/
-    - if: $CI_COMMIT_BRANCH =~ /^feature\/.*$/
-    - if: $CI_MERGE_REQUEST_IID
-
-cache:
-  key:
-    files:
-      - package.json
-      - pnpm-lock.yaml
-      - '**/pyproject.toml'
-      - '**/uv.lock'
-  paths:
-    - .npm/
-    - .pip-cache/
-    - node_modules/
-    - .uv/
-
 stages:
-  - validate
   - build
-  - test
   - deploy
 
-validate:
-  stage: validate
-  interruptible: true
-  script:
-    - *setup-python
-    - *setup-node
-    - npx nx-cloud record -- nx format:check --base=$NX_BASE --head=$NX_HEAD
-    - npx nx affected --base=$NX_BASE --head=$NX_HEAD -t lint
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH
+# Variables used for Nx affected calculation.
+variables:
+  NX_HEAD: "$CI_COMMIT_SHA"
+  NX_BASE: "${CI_MERGE_REQUEST_DIFF_BASE_SHA:-$CI_COMMIT_BEFORE_SHA}"
 
-test:
-  stage: test
-  interruptible: true
-  needs: ["validate"]
-  script:
-    - *setup-python
-    - *setup-node
-    - npx nx affected --base=$NX_BASE --head=$NX_HEAD -t test
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - node_modules/
+    - .nx/
 
 build:
   stage: build
-  interruptible: true
-  needs: ["test"]
   script:
-    - *setup-python
-    - *setup-node
-    - npx nx affected --base=$NX_BASE --head=$NX_HEAD -t build
+    - npm ci
+    # Build only the projects that are affected (this will include your Lambda code)
+    - npx nx affected:build --base=$NX_BASE --head=$NX_HEAD
   artifacts:
     paths:
       - dist/
-      - apps/data-pipeline/**/*.zip
+      - apps/**/lambda_deployment.zip
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH
+    - if: '$CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "merge_request_event"'
 
-# Development Environment
 deploy:dev:
   stage: deploy
-  needs: ["build"]
+  image: hashicorp/terraform:1.8.0
   script:
-    - *setup-python
-    - *setup-node
-    - npx nx affected --base=$NX_BASE --head=$NX_HEAD -t deploy
+    # Ensure Node dependencies are available if needed for Nx
+    - npm ci
+    # Deploy the unified infrastructure code; this target is defined in your Nx workspace 
+    # (for example, in a project named "infra-dev" whose "deploy" target runs Terraform commands)
+    - npx nx run infra-dev:deploy --base=$NX_BASE --head=$NX_HEAD
   environment:
-    name: development
+    name: dev
   rules:
-    - if: $CI_COMMIT_BRANCH == "develop"
-    - if: $CI_COMMIT_BRANCH =~ /^feature\/.*$/
-      when: manual
-
-# Staging/Pre-production Environment
-deploy:staging:
-  stage: deploy
-  needs: ["build"]
-  script:
-    - *setup-python
-    - *setup-node
-    - npx nx affected --base=$NX_BASE --head=$NX_HEAD -t deploy
-  environment:
-    name: staging
-  rules:
-    - if: $CI_COMMIT_BRANCH =~ /^release\/.*$/
-
-# Production Environment
-deploy:production:
-  stage: deploy
-  needs: ["build"]
-  script:
-    - *setup-python
-    - *setup-node
-    - npx nx affected --base=$NX_BASE --head=$NX_HEAD -t deploy
-  environment:
-    name: production
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: manual
-      allow_failure: false
-    - if: $CI_COMMIT_BRANCH =~ /^hotfix\/.*$/
-      when: manual
-      allow_failure: false
+    - if: '$CI_COMMIT_BRANCH == "develop"'
