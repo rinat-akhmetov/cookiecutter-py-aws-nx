@@ -1,0 +1,19 @@
+{
+    "name": "infra-dev",
+    "root": "infra/dev",
+    "sourceRoot": "infra/dev",
+    "projectType": "application",
+    "implicitDependencies": [
+        "data-pipeline-step1-lambda",
+        "data-pipeline-step2-lambda"
+    ],
+    "targets": {
+        "deploy": {
+            "executor": "nx:run-commands",
+            "options": {
+                "command": "terraform init && terraform plan -out=plan.out && terraform apply -auto-approve plan.out",
+                "cwd": "${projectRoot}"
+            }
+        }
+    }
+}
