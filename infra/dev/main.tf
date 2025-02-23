@@ -5,7 +5,6 @@ provider "aws" {
 
 # Backend configuration is in backend.tf (for remote state in S3/Dynamo, not shown here)
 
-# ... e.g., a Step Function that orchestrates function_a and function_b
 module "network" {
   source = "../modules/vpc"
 
@@ -35,18 +34,11 @@ module "gitlab_runner" {
 
 }
 
-# Example IAM role for lambdas (minimal):
-resource "aws_iam_role" "lambda_exec" {
-  name               = "example-lambda-exec-role-dev"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
-}
-data "aws_iam_policy_document" "lambda_assume" {
-  statement {
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-    actions = ["sts:AssumeRole"]
+module "step1_lambda" {
+  source = "../modules/data-pipeline/step1-lambda"
+
+  environment = var.environment
+  environment_variables = {
+    ENV = var.environment
   }
 }
-# ... (plus attach AWSLambdaBasicExecutionRole managed policy, etc.)
